@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable, of} from 'rxjs';
-import {catchError, map, tap} from 'rxjs/operators';
+import {catchError, tap} from 'rxjs/operators';
 
 import {Hero} from '../models/hero';
 import {MessagesService} from './messages.service';
@@ -22,10 +22,6 @@ export class HeroService {
   ) {
   }
 
-  private log(message: string): void {
-    this.messagesService.add(`HeroService: ${message}`);
-  }
-
   getHeroes(): Observable<Hero[]> {
     this.messagesService.add('HeroService: fetched heroes');
     return this.http.get<Hero[]>(this.heroesUrl).pipe(
@@ -43,19 +39,6 @@ export class HeroService {
       catchError(this.handleError<Hero>(`getHero id=${id}`))
     );
     // return of(HEROES.find(hero => hero.id === id));
-  }
-
-  private handleError<T>(operation: string, result?: T) {
-    return (error: any): Observable<T> => {
-      // TODO: send the error to remote logging infrastructure
-      console.error(error); // log to console instead
-
-      // TODO: better job of transforming error for user consumption
-      this.log(`${operation} failed: ${error.message}`);
-
-      // Let the app keep running by returning an empty result.
-      return of(result as T);
-    };
   }
 
   updateHero(hero: Hero): Observable<any> {
@@ -82,5 +65,32 @@ export class HeroService {
         tap(_ => this.log(`deleted hero id=${id}`)),
         catchError(this.handleError<any>('deleteHero'))
       );
+  }
+
+  searchHeroes(term: string): Observable<Hero[]> {
+    if (!term.trim()) {
+      return of([]);
+    }
+    return this.http.get<Hero[]>(`${this.heroesUrl}?name=${term}`).pipe(
+      tap(_ => this.log(`find heroes matched term ${term}`)),
+      catchError(this.handleError<any>('searchHeroes', []))
+    );
+  }
+
+  private log(message: string): void {
+    this.messagesService.add(`HeroService: ${message}`);
+  }
+
+  private handleError<T>(operation: string, result?: T) {
+    return (error: any): Observable<T> => {
+      // TODO: send the error to remote logging infrastructure
+      console.error(error); // log to console instead
+
+      // TODO: better job of transforming error for user consumption
+      this.log(`${operation} failed: ${error.message}`);
+
+      // Let the app keep running by returning an empty result.
+      return of(result as T);
+    };
   }
 }
